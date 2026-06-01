@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>六级单词 · 学习卡片</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="hero">
+    <h1>📘 六级单词 · 学习卡片</h1>
+    <p class="subtitle">点击 🔊 听美音发音 · 点击「历年例句」查看真题用法</p>
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="🔍 搜索单词或释义…" autocomplete="off" />
+      <span id="count" class="count"></span>
+    </div>
+  </header>
+
+  <main>
+    <div id="cards" class="cards"></div>
+    <p id="empty" class="empty" hidden>没有找到匹配的单词～</p>
+  </main>
+
+  <footer>
+    <p>共 <span id="total"></span> 个单词 · 数据存放于 <code>words.js</code>，可随时扩展</p>
+  </footer>
+
+  <!-- 隐藏的音频元素，用于播放有道发音 -->
+  <audio id="player" preload="none"></audio>
+
+  <script src="words.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
