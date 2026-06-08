@@ -1,18 +1,27 @@
 // ============================================================
 //  六级学习卡片 —— 交互逻辑
-//  支持：单元 / 类型 / 词性 三维分类筛选、搜索、发音、展开详情
+//  顶部搜索 + 底部类型导航 + 筛选弹层（单元 / 词性）
 // ============================================================
 
-const cardsEl   = document.getElementById("cards");
-const searchEl  = document.getElementById("search");
-const clearEl   = document.getElementById("clear-search");
-const countEl   = document.getElementById("count");
-const totalEl   = document.getElementById("total");
-const emptyEl   = document.getElementById("empty");
-const player    = document.getElementById("player");
-const toTopEl   = document.getElementById("to-top");
+const cardsEl    = document.getElementById("cards");
+const searchEl   = document.getElementById("search");
+const clearEl    = document.getElementById("clear-search");
+const countEl    = document.getElementById("count");
+const emptyEl    = document.getElementById("empty");
+const player     = document.getElementById("player");
+const toTopEl    = document.getElementById("to-top");
+const appbarEl   = document.getElementById("appbar");
+const tabbarEl   = document.getElementById("tabbar");
+const sheetEl    = document.getElementById("sheet");
+const backdropEl = document.getElementById("sheet-backdrop");
+const openFilterEl = document.getElementById("open-filter");
+const sheetCloseEl = document.getElementById("sheet-close");
+const sheetApplyEl = document.getElementById("sheet-apply");
+const filterBadgeEl = document.getElementById("filter-badge");
+const resetEl    = document.getElementById("reset-filter");
 
 const TYPE_LABEL = { word: "单词", phrase: "短语", grammar: "语法" };
+const POS_VALUES = ["全部", "名词", "动词", "形容词", "副词"];
 
 // 当前筛选状态
 const state = { unit: "全部", type: "全部", pos: "全部", q: "" };
@@ -52,7 +61,6 @@ function fallbackTTS(text) {
 function leadingEnglish(s) {
   const m = String(s).match(/^[^一-鿿]+/);
   let t = (m ? m[0] : s).trim();
-  // 去掉结尾孤立的标点
   t = t.replace(/[；;，,。.\/]+$/, "").trim();
   return t || String(s).trim();
 }
@@ -64,7 +72,6 @@ function splitList(s) {
 }
 
 // ---------- 词性归类（用于词性筛选） ----------
-// 把各种写法（名词 n. / adj./v-ed / adj./n./v. 等）归到大类
 function posCategory(item) {
   if (item.type !== "word") return null;
   const raw = (item.pos || "") + " " + (item.meaning || "");
@@ -77,21 +84,12 @@ function posCategory(item) {
   return cats.length ? cats : ["其他"];
 }
 
-// ---------- 构建筛选选项 ----------
+// ---------- 构建筛选选项（弹层里的单元 / 词性） ----------
 function buildFilters() {
   const unitOrder = ["全部", "核心词", "第一单元", "第二单元"];
   const units = unitOrder.filter(u => u === "全部" || DATA.some(d => d.unit === u));
   renderChips("filter-unit", "unit", units, { "全部": "全部单元" });
-
-  const types = ["全部", "word", "phrase", "grammar"].filter(
-    t => t === "全部" || DATA.some(d => d.type === t)
-  );
-  renderChips("filter-type", "type", types, {
-    "全部": "全部类型", word: "📖 单词", phrase: "🔗 短语", grammar: "🧩 语法"
-  });
-
-  const poss = ["全部", "名词", "动词", "形容词", "副词"];
-  renderChips("filter-pos", "pos", poss, { "全部": "全部词性" });
+  renderChips("filter-pos", "pos", POS_VALUES, { "全部": "全部词性" });
 }
 
 function renderChips(containerId, key, values, labels = {}) {
@@ -126,8 +124,22 @@ function applyFilters() {
 // 词性筛选只有在“单词 / 全部”类型下才有意义
 function syncPosVisibility() {
   const show = state.type === "全部" || state.type === "word";
-  document.getElementById("filter-pos").classList.toggle("hidden", !show);
-  if (!show && state.pos !== "全部") { state.pos = "全部"; renderChips("filter-pos", "pos", ["全部","名词","动词","形容词","副词"], {"全部":"全部词性"}); }
+  document.getElementById("pos-section").classList.toggle("hidden", !show);
+  if (!show && state.pos !== "全部") {
+    state.pos = "全部";
+    renderChips("filter-pos", "pos", POS_VALUES, { "全部": "全部词性" });
+  }
+}
+
+// 顶部筛选按钮的徽标 + 结果条的「清除筛选」
+function updateFilterIndicators() {
+  const n = (state.unit !== "全部" ? 1 : 0) + (state.pos !== "全部" ? 1 : 0);
+  filterBadgeEl.hidden = n === 0;
+  filterBadgeEl.textContent = n || "";
+  openFilterEl.classList.toggle("active", n > 0);
+
+  const anyFilter = state.unit !== "全部" || state.pos !== "全部" || state.type !== "全部" || state.q !== "";
+  resetEl.hidden = !anyFilter;
 }
 
 // ---------- 渲染卡片 ----------
@@ -135,8 +147,9 @@ function render() {
   syncPosVisibility();
   const list = applyFilters();
   cardsEl.innerHTML = list.map(cardHtml).join("");
-  countEl.textContent = list.length ? `共 ${list.length} 条` : "";
+  countEl.textContent = `共 ${list.length} 条`;
   emptyEl.hidden = list.length !== 0;
+  updateFilterIndicators();
 }
 
 function badge(text, cls = "") {
@@ -239,7 +252,7 @@ function grammarCard(item) {
     </article>`;
 }
 
-// ---------- 事件委托 ----------
+// ---------- 事件：卡片内（发音 / 展开） ----------
 cardsEl.addEventListener("click", (e) => {
   const sayBtn = e.target.closest("[data-say]");
   if (sayBtn) {
@@ -255,18 +268,49 @@ cardsEl.addEventListener("click", (e) => {
   }
 });
 
-// 筛选 chip 点击
-document.querySelector(".filters").addEventListener("click", (e) => {
+// ---------- 事件：底部类型导航 ----------
+tabbarEl.addEventListener("click", (e) => {
+  const tab = e.target.closest(".tab");
+  if (!tab) return;
+  state.type = tab.dataset.type;
+  tabbarEl.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t === tab));
+  render();
+});
+
+// ---------- 事件：筛选弹层里的 chip ----------
+sheetEl.addEventListener("click", (e) => {
   const chip = e.target.closest(".chip");
   if (!chip) return;
   const key = chip.dataset.key;
   state[key] = chip.dataset.val;
-  // 更新该组 active 状态
   chip.parentElement.querySelectorAll(".chip").forEach(c => c.classList.toggle("active", c === chip));
   render();
 });
 
-// 搜索
+// ---------- 弹层开关 ----------
+function openSheet() {
+  sheetEl.classList.add("open");
+  backdropEl.classList.add("open");
+}
+function closeSheet() {
+  sheetEl.classList.remove("open");
+  backdropEl.classList.remove("open");
+}
+openFilterEl.addEventListener("click", openSheet);
+sheetCloseEl.addEventListener("click", closeSheet);
+sheetApplyEl.addEventListener("click", closeSheet);
+backdropEl.addEventListener("click", closeSheet);
+
+// ---------- 清除筛选 ----------
+resetEl.addEventListener("click", () => {
+  state.unit = "全部"; state.type = "全部"; state.pos = "全部"; state.q = "";
+  searchEl.value = ""; clearEl.hidden = true;
+  buildFilters();
+  tabbarEl.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.type === "全部"));
+  render();
+});
+
+// ---------- 搜索 ----------
 searchEl.addEventListener("input", () => {
   state.q = searchEl.value.trim();
   clearEl.hidden = !state.q;
@@ -276,8 +320,16 @@ clearEl.addEventListener("click", () => {
   searchEl.value = ""; state.q = ""; clearEl.hidden = true; render(); searchEl.focus();
 });
 
-// 回到顶部
-window.addEventListener("scroll", () => { toTopEl.hidden = window.scrollY < 400; });
+// ---------- 滚动：回到顶部 + 顶部栏随滚动隐藏 ----------
+let lastY = 0;
+window.addEventListener("scroll", () => {
+  const y = window.scrollY;
+  toTopEl.hidden = y < 400;
+  // 向下滚且离开顶部 → 收起顶部栏；向上滚 → 显示
+  if (y > lastY && y > 140) appbarEl.classList.add("hide");
+  else appbarEl.classList.remove("hide");
+  lastY = y;
+}, { passive: true });
 toTopEl.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
 
 // ---------- 工具：转义 ----------
@@ -289,7 +341,6 @@ function escapeHtml(s) {
 function escapeAttr(s) { return escapeHtml(s); }
 
 // ---------- 初始化 ----------
-totalEl.textContent = DATA.length;
 buildFilters();
 render();
 

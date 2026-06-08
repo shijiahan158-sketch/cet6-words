@@ -3,45 +3,74 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="theme-color" content="#0b1120" />
   <meta name="description" content="六级单词 · 短语 · 语法 学习卡片" />
-  <title>六级学习卡片 · 单词 / 短语 / 语法</title>
+  <title>六级学习卡片</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="hero">
-    <h1>📘 六级学习卡片</h1>
-    <p class="subtitle">单词 · 短语 · 语法 一站式记忆 · 点击 🔊 听美音</p>
-
-    <div class="toolbar">
-      <div class="search-wrap">
-        <span class="search-icon">🔍</span>
-        <input id="search" type="search" placeholder="搜索单词、短语或释义…" autocomplete="off" />
-        <button id="clear-search" class="clear-search" hidden title="清空">✕</button>
-      </div>
+  <!-- 顶部应用栏 -->
+  <header class="appbar" id="appbar">
+    <div class="brand">
+      <span class="brand-logo">📘</span>
+      <span class="brand-name">六级学习卡片</span>
     </div>
-
-    <!-- 分类筛选 -->
-    <nav class="filters">
-      <div class="filter-group" id="filter-unit" data-key="unit" aria-label="按单元筛选"></div>
-      <div class="filter-group" id="filter-type" data-key="type" aria-label="按类型筛选"></div>
-      <div class="filter-group pos-group" id="filter-pos" data-key="pos" aria-label="按词性筛选"></div>
-    </nav>
-
-    <div class="stat-bar">
-      <span id="count" class="count"></span>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="search" type="search" placeholder="搜索单词 / 短语 / 释义…" autocomplete="off" />
+      <button id="clear-search" class="clear-search" hidden title="清空">✕</button>
     </div>
+    <button id="open-filter" class="filter-btn" title="筛选">
+      <span class="filter-ico">⚙</span>
+      <span class="filter-txt">筛选</span>
+      <span id="filter-badge" class="filter-badge" hidden></span>
+    </button>
   </header>
+
+  <!-- 结果信息条（随内容滚动） -->
+  <div class="result-bar">
+    <span id="count" class="count"></span>
+    <button id="reset-filter" class="reset-filter" hidden>清除筛选</button>
+  </div>
 
   <main>
     <div id="cards" class="cards"></div>
-    <p id="empty" class="empty" hidden>没有找到匹配的内容～</p>
+    <p id="empty" class="empty" hidden>
+      没有找到匹配的内容～
+      <span class="empty-sub">换个关键词，或点右上角「筛选」清除条件试试</span>
+    </p>
   </main>
 
-  <footer>
-    <p>共 <span id="total"></span> 条 · 数据存放于 <code>words.js</code>，可随时扩展</p>
-  </footer>
+  <!-- 底部类型导航 -->
+  <nav class="tabbar" id="tabbar">
+    <button class="tab active" data-type="全部"><span class="tab-ico">🗂️</span><span class="tab-label">全部</span></button>
+    <button class="tab" data-type="word"><span class="tab-ico">📖</span><span class="tab-label">单词</span></button>
+    <button class="tab" data-type="phrase"><span class="tab-ico">🔗</span><span class="tab-label">短语</span></button>
+    <button class="tab" data-type="grammar"><span class="tab-ico">🧩</span><span class="tab-label">语法</span></button>
+  </nav>
 
+  <!-- 筛选底部弹层 -->
+  <div id="sheet-backdrop" class="sheet-backdrop"></div>
+  <section id="sheet" class="sheet" aria-label="筛选">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <span>筛选</span>
+      <button id="sheet-close" class="sheet-close" title="关闭">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="sheet-section">
+        <h4 class="sheet-title">按单元</h4>
+        <div class="filter-group" id="filter-unit" data-key="unit"></div>
+      </div>
+      <div class="sheet-section" id="pos-section">
+        <h4 class="sheet-title">按词性</h4>
+        <div class="filter-group" id="filter-pos" data-key="pos"></div>
+      </div>
+    </div>
+    <button id="sheet-apply" class="sheet-apply">查看结果</button>
+  </section>
+
+  <!-- 回到顶部 -->
   <button id="to-top" class="to-top" hidden title="回到顶部">↑</button>
 
   <!-- 隐藏音频元素，用于播放有道发音 -->
