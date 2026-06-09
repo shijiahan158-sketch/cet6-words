@@ -86,8 +86,10 @@ function posCategory(item) {
 
 // ---------- 构建筛选选项（弹层里的单元 / 词性） ----------
 function buildFilters() {
-  const unitOrder = ["全部", "核心词", "第一单元", "第二单元"];
+  const unitOrder = ["全部", "核心词", "第一单元", "第二单元", "六级核心词汇"];
   const units = unitOrder.filter(u => u === "全部" || DATA.some(d => d.unit === u));
+  // 追加任何未在预设顺序里的单元，保证新单元也能出现
+  DATA.forEach(d => { if (!units.includes(d.unit)) units.push(d.unit); });
   renderChips("filter-unit", "unit", units, { "全部": "全部单元" });
   renderChips("filter-pos", "pos", POS_VALUES, { "全部": "全部词性" });
 }
